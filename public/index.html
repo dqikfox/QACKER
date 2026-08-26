@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QACKER — CyberStrike Dashboard</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>QACKER</h1>
+    <p>Penetration testing &amp; hacking dashboard — CyberStrike arsenal</p>
+  </header>
+
+  <main>
+    <nav id="tool-tabs" aria-label="Tools"></nav>
+
+    <section id="tool-panel">
+      <p class="hint">Select a tool to get started.</p>
+    </section>
+
+    <section id="output-panel">
+      <h2>Output</h2>
+      <pre id="output"><code>Run a tool to see its output here.</code></pre>
+    </section>
+
+    <section id="seclists-panel">
+      <h2>SecLists browser</h2>
+      <div class="seclists-controls">
+        <button id="seclists-up" type="button">&uarr; Up</button>
+        <span id="seclists-path">/</span>
+      </div>
+      <ul id="seclists-list"></ul>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
