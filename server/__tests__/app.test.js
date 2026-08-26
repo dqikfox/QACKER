@@ -9,7 +9,7 @@ describe('dashboard API', () => {
   test('GET /api/tools lists all configured tools', async () => {
     const res = await request(app).get('/api/tools');
     expect(res.status).toBe(200);
-    const ids = res.body.map((t) => t.id);
+    const ids = res.body.tools.map((t) => t.id);
     expect(ids).toEqual(
       expect.arrayContaining([
         'nmap', 'nikto', 'sqlmap', 'nuclei', 'ffuf', 'httpx',
