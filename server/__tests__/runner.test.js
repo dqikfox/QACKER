@@ -23,4 +23,15 @@ describe('runTool', () => {
     // Because no shell is used, the argument is echoed back literally.
     expect(result.stdout.trim()).toBe('$(whoami); echo pwned');
   });
+
+  test('reports a timeout distinctly from other errors', () => {
+    const tool = {
+      binary: 'sleep',
+      buildArgs: () => ['1'],
+    };
+    const result = runTool(tool, {}, { timeoutMs: 10 });
+    expect(result.success).toBe(false);
+    expect(result.timedOut).toBe(true);
+    expect(result.stderr).toMatch(/timed out/i);
+  });
 });

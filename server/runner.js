@@ -21,14 +21,17 @@ function runTool(tool, input, options = {}) {
 
   if (result.error) {
     const notFound = result.error.code === 'ENOENT';
+    const timedOut = result.error.code === 'ETIMEDOUT';
+    let stderr = result.error.message;
+    if (notFound) stderr = `"${tool.binary}" is not installed or not on PATH.`;
+    else if (timedOut) stderr = `"${tool.binary}" timed out after ${timeout}ms.`;
     return {
       command: tool.binary,
       args,
       stdout: '',
-      stderr: notFound
-        ? `"${tool.binary}" is not installed or not on PATH.`
-        : result.error.message,
+      stderr,
       code: null,
+      timedOut,
       success: false,
     };
   }
@@ -40,7 +43,7 @@ function runTool(tool, input, options = {}) {
     stderr: result.stderr || '',
     code: result.status,
     signal: result.signal,
-    timedOut: !!result.signal && result.error === undefined && result.status === null,
+    timedOut: false,
     success: result.status === 0,
   };
 }

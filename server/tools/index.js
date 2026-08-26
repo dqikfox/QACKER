@@ -23,6 +23,19 @@ function pushFlag(args, flag, enabled) {
   if (enabled) args.push(flag);
 }
 
+// msfconsole's `-x` argument is a single string containing multiple
+// commands separated by `;` / newlines. Any of those characters inside a
+// user-supplied value would let it break out and inject extra commands, so
+// they are rejected outright rather than silently stripped.
+const MSF_COMMAND_SEPARATORS = /[;\n\r]/;
+
+function assertSafeMsfValue(fieldName, value) {
+  if (value && MSF_COMMAND_SEPARATORS.test(value)) {
+    throw new Error(`Invalid character in "${fieldName}": ";" and newlines are not allowed.`);
+  }
+  return value;
+}
+
 const tools = {
   nmap: {
     id: 'nmap',
@@ -243,6 +256,12 @@ const tools = {
       { name: 'payload', label: 'Payload (set PAYLOAD)', type: 'text', placeholder: 'linux/x64/meterpreter/reverse_tcp' },
     ],
     buildArgs(input) {
+      assertSafeMsfValue('module', input.module);
+      assertSafeMsfValue('payload', input.payload);
+      assertSafeMsfValue('rhosts', input.rhosts);
+      assertSafeMsfValue('lhost', input.lhost);
+      assertSafeMsfValue('lport', input.lport);
+
       const commands = [`use ${input.module}`];
       if (input.payload) commands.push(`set PAYLOAD ${input.payload}`);
       if (input.rhosts) commands.push(`set RHOSTS ${input.rhosts}`);
