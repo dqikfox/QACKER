@@ -42,7 +42,9 @@ function createApp() {
       const result = runTool(tool, input);
       res.json(result);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      // buildArgs() validation failures (e.g. unsafe characters) are the
+      // only errors thrown here; spawn failures are captured in the result.
+      res.status(400).json({ error: err.message });
     }
   });
 

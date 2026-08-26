@@ -81,4 +81,21 @@ describe('tool command builders', () => {
   test('waybackurls passes the domain as a single positional arg', () => {
     expect(tools.waybackurls.buildArgs({ domain: 'example.com' })).toEqual(['example.com']);
   });
+
+  test('msfconsole rejects command-separator characters to prevent command injection', () => {
+    expect(() =>
+      tools.msfconsole.buildArgs({
+        module: 'exploit/multi/handler',
+        lhost: '10.0.0.1; set EnableStageEncoding true',
+      })
+    ).toThrow(/Invalid character/);
+  });
+
+  test('msfconsole rejects newlines in field values', () => {
+    expect(() =>
+      tools.msfconsole.buildArgs({
+        module: 'exploit/multi/handler\nset PAYLOAD evil',
+      })
+    ).toThrow(/Invalid character/);
+  });
 });

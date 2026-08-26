@@ -1,7 +1,7 @@
 {
   "name": "qacker",
   "version": "1.0.0",
-  "description": "penetration  testing and hacking dashboard.",
+  "description": "penetration testing and hacking dashboard.",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
