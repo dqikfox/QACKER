@@ -38,6 +38,16 @@ describe('listSeclists', () => {
     expect(() => listSeclists('../../etc')).toThrow('Invalid path');
   });
 
+  test('rejects absolute-looking traversal segments mixed with valid ones', () => {
+    const { listSeclists } = require('../seclists');
+    expect(() => listSeclists('Discovery/../../../etc')).toThrow('Invalid path');
+  });
+
+  test('rejects null bytes in the path', () => {
+    const { listSeclists } = require('../seclists');
+    expect(() => listSeclists('Discovery\0/Web-Content')).toThrow('Invalid path');
+  });
+
   test('reports unavailable when root does not exist', () => {
     delete process.env.SECLISTS_PATH;
     process.env.SECLISTS_PATH = path.join(tmpRoot, 'does-not-exist');

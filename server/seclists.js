@@ -12,17 +12,38 @@ function getSeclistsRoot() {
 }
 
 /**
+ * Splits a user-supplied relative path into path segments, rejecting any
+ * `..` traversal segment, absolute paths, or embedded null bytes. Returns a
+ * clean array of segment names that are safe to join onto a trusted root.
+ */
+function sanitizeRelativePath(relativePath) {
+  if (typeof relativePath !== 'string') {
+    throw new Error('Invalid path');
+  }
+  if (relativePath.includes('\0')) {
+    throw new Error('Invalid path');
+  }
+
+  const segments = relativePath.split(/[\\/]+/).filter((segment) => segment.length > 0);
+  for (const segment of segments) {
+    if (segment === '.' || segment === '..') {
+      throw new Error('Invalid path');
+    }
+  }
+  return segments;
+}
+
+/**
  * Lists the contents of a directory inside the SecLists root. `relativePath`
- * is resolved and validated to stay within the root to prevent path
- * traversal (e.g. `../../etc/passwd`).
+ * is split into individual segments and validated (no `..`, no absolute
+ * paths, no null bytes) before being joined onto the trusted root, which
+ * prevents path traversal outside of the SecLists directory.
  */
 function listSeclists(relativePath = '') {
   const root = getSeclistsRoot();
-  const target = path.resolve(root, '.' + path.sep + relativePath);
-
-  if (target !== root && !target.startsWith(root + path.sep)) {
-    throw new Error('Invalid path');
-  }
+  const segments = sanitizeRelativePath(relativePath);
+  const safeRelativePath = segments.join('/');
+  const target = segments.reduce((dir, segment) => path.join(dir, segment), root);
 
   if (!fs.existsSync(root)) {
     return { available: false, root, entries: [] };
@@ -41,7 +62,7 @@ function listSeclists(relativePath = '') {
     .map((entry) => ({
       name: entry.name,
       type: entry.isDirectory() ? 'directory' : 'file',
-      path: path.join(relativePath, entry.name).split(path.sep).join('/'),
+      path: safeRelativePath ? `${safeRelativePath}/${entry.name}` : entry.name,
     }))
     .sort((a, b) => {
       if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
