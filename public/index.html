@@ -3,36 +3,86 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>QACKER — CyberStrike Dashboard</title>
+  <title>QACKER — CyberStrike Arsenal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <header>
-    <h1>QACKER</h1>
-    <p>Penetration testing &amp; hacking dashboard — CyberStrike arsenal</p>
+
+  <!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-q">Q</span><span class="logo-rest">ACKER</span>
+      </div>
+      <div class="tagline">CyberStrike Arsenal · KING@THRONE</div>
+    </div>
+    <div class="header-right">
+      <div class="status-bar">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">Connecting…</span>
+      </div>
+      <div class="tool-count" id="tool-count">— tools</div>
+    </div>
   </header>
 
-  <main>
-    <nav id="tool-tabs" aria-label="Tools"></nav>
+  <!-- ── MAIN LAYOUT ─────────────────────────────────────────────────────────── -->
+  <div class="layout">
 
-    <section id="tool-panel">
-      <p class="hint">Select a tool to get started.</p>
-    </section>
-
-    <section id="output-panel">
-      <h2>Output</h2>
-      <pre id="output"><code>Run a tool to see its output here.</code></pre>
-    </section>
-
-    <section id="seclists-panel">
-      <h2>SecLists browser</h2>
-      <div class="seclists-controls">
-        <button id="seclists-up" type="button">&uarr; Up</button>
-        <span id="seclists-path">/</span>
+    <!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">ARSENAL</div>
+        <nav id="tool-nav"></nav>
       </div>
-      <ul id="seclists-list"></ul>
-    </section>
-  </main>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">WORDLISTS</div>
+        <div class="seclists-nav">
+          <div class="seclists-path-bar">
+            <button class="icon-btn" id="seclists-up" title="Go up">↑</button>
+            <span id="seclists-path" class="seclists-path">/</span>
+          </div>
+          <ul id="seclists-list" class="seclists-list"></ul>
+        </div>
+      </div>
+
+      <div class="sidebar-section sidebar-agents">
+        <div class="sidebar-label">AGENTS</div>
+        <div class="agent-list" id="agent-list"></div>
+      </div>
+    </aside>
+
+    <!-- ── CONTENT ─────────────────────────────────────────────────────────── -->
+    <main class="content">
+
+      <!-- Tool form panel -->
+      <section class="panel" id="tool-panel">
+        <div class="panel-empty">
+          <div class="empty-icon">⚡</div>
+          <div class="empty-title">Select a tool</div>
+          <div class="empty-sub">Choose a tool from the arsenal to get started</div>
+        </div>
+      </section>
+
+      <!-- Output panel -->
+      <section class="panel output-panel" id="output-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="panel-icon">▶</span> Output
+          </div>
+          <div class="output-actions">
+            <span class="output-meta" id="output-meta"></span>
+            <button class="icon-btn" id="copy-btn" title="Copy output">⧉ Copy</button>
+            <button class="icon-btn" id="clear-btn" title="Clear output">✕ Clear</button>
+          </div>
+        </div>
+        <pre id="output" class="output-pre"><code class="output-placeholder">Run a tool to see output here.</code></pre>
+      </section>
+
+    </main>
+  </div>
 
   <script src="/app.js"></script>
 </body>
