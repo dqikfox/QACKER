@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QACKER — Investigation Workspace</title>
+  <link rel="stylesheet" href="/investigations.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <a class="brand" href="/">QACKER</a>
+      <span class="subtitle">Authorized Investigation Workspace</span>
+    </div>
+    <div class="guardrail">Evidence correlation only · no active collection or person tracking</div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar card">
+      <div class="section-head">
+        <h2>Cases</h2>
+        <button id="refresh-cases">Refresh</button>
+      </div>
+      <div id="case-list" class="case-list"></div>
+      <hr />
+      <h3>Create case</h3>
+      <form id="case-form" class="stack">
+        <label>Title<input id="case-title" maxlength="160" required /></label>
+        <label>Purpose<textarea id="case-purpose" rows="2"></textarea></label>
+        <label>Authorized scope<textarea id="case-scope" rows="3"></textarea></label>
+        <label>Authorization basis<textarea id="auth-basis" rows="2" required placeholder="Owned infrastructure, written engagement, official authorization…"></textarea></label>
+        <label>Authorization reference<input id="auth-reference" placeholder="Engagement/case/reference ID" /></label>
+        <label class="check"><input id="auth-confirmed" type="checkbox" required /> I confirm this case has a lawful authorization basis.</label>
+        <button type="submit" class="primary">Create authorized case</button>
+      </form>
+    </aside>
+
+    <section class="maincol">
+      <section class="card" id="empty-state">
+        <h2>Select or create a case</h2>
+        <p>QACKER correlates analyst-supplied evidence and authorized tool output. Technical confidence scores are leads, not identity or guilt probabilities.</p>
+      </section>
+
+      <div id="case-workspace" hidden>
+        <section class="card">
+          <div class="section-head wrap">
+            <div>
+              <h1 id="active-title">Case</h1>
+              <div id="active-meta" class="muted"></div>
+            </div>
+            <div class="actions">
+              <button id="verify-btn">Verify integrity</button>
+              <button id="report-btn">Download report</button>
+              <button id="export-btn">Export JSON</button>
+              <button id="status-btn">Close case</button>
+            </div>
+          </div>
+          <div id="case-details" class="details"></div>
+          <div id="verification" class="verification"></div>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <h2>Bearing map</h2>
+            <div class="actions">
+              <button id="toggle-location">Track my position</button>
+              <button id="refresh-map">Refresh map</button>
+            </div>
+          </div>
+          <p class="muted">Stations and triangulation fix from ingested bearings only. Operator position is the device running this browser. No third-party tracking.</p>
+          <div id="map" class="map"></div>
+          <div id="map-status" class="muted"></div>
+        </section>
+
+        <section class="card">
+          <h2>Extract media metadata</h2>
+          <p class="muted">Requires exiftool on PATH. Local absolute path only. GPS plots on the map when present.</p>
+          <form id="media-form" class="stack">
+            <label>File path<input id="media-path" required placeholder="/absolute/path/to/file.mp4" /></label>
+            <label>Source<input id="media-source" placeholder="field-phone-mp4" value="exiftool" /></label>
+            <button class="primary" type="submit">Extract and ingest</button>
+          </form>
+        </section>
+
+        <section class="grid2">
+          <section class="card">
+            <h2>Add evidence</h2>
+            <form id="evidence-form" class="stack">
+              <label>Kind
+                <select id="evidence-kind">
+                  <option value="observation">Observation</option>
+                  <option value="metasploit">Metasploit output</option>
+                  <option value="log">Log</option>
+                  <option value="forensic-note">Forensic note</option>
+                  <option value="bearing">Bearing</option>
+                </select>
+              </label>
+              <label>Source<input id="evidence-source" required placeholder="analyst-note, sensor-a, authorized-tool-output…" /></label>
+              <label>Collected at<input id="evidence-time" type="datetime-local" /></label>
+              <label>Content<textarea id="evidence-content" rows="10" required placeholder="Paste analyst-supplied evidence or authorized tool output here…"></textarea></label>
+              <button class="primary" type="submit">Ingest and hash evidence</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <div class="section-head"><h2>Technical correlations</h2><button id="refresh-correlation">Refresh</button></div>
+            <p class="muted">Percentages are uncalibrated technical-link confidence estimates—not probabilities of identity, location, criminal conduct, or guilt.</p>
+            <div id="correlations"></div>
+          </section>
+        </section>
+
+        <section class="card">
+          <div class="section-head"><h2>Evidence inventory</h2><span id="evidence-count" class="badge">0</span></div>
+          <div id="evidence-list"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="/investigations.js"></script>
+</body>
+</html>
