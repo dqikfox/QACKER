@@ -1,12 +1,25 @@
 'use strict';
 
 const path    = require('path');
+const fs      = require('fs');
+const os      = require('os');
 const express = require('express');
-const { spawn } = require('child_process');
 
 const { tools, CATEGORIES } = require('./tools');
-const { runTool }            = require('./runner');
+const { runTool, spawnTool } = require('./runner');
 const { listSeclists }       = require('./seclists');
+const config                 = require('./config');
+
+// ── Loot directory ──────────────────────────────────────────────────────────
+const LOOT_DIR = process.env.LOOT_DIR
+  || path.join(os.homedir(), '.cyberstrike', 'loot');
+
+function ensureLootDir() {
+  try { fs.mkdirSync(LOOT_DIR, { recursive: true }); } catch (_) {}
+}
+
+// Track active streaming processes: pid → ChildProcess
+const activeProcs = new Map();
 
 function createApp() {
   const app = express();
@@ -45,8 +58,14 @@ function createApp() {
   });
 
   // ── Streaming run (SSE) ─────────────────────────────────────────────────────
-  // GET /api/tools/:toolId/stream?<fields as query params>
-  // Sends newline-delimited JSON events: { type: 'stdout'|'stderr'|'done'|'error', data }
+  // POST /api/tools/:toolId/stream
+  // Body: { ...fields }
+  // Sends newline-delimited JSON SSE events:
+  //   { type: 'start',  data: { command, args, pid } }
+  //   { type: 'stdout', data: '<string>' }
+  //   { type: 'stderr', data: '<string>' }
+  //   { type: 'done',   data: { code, signal, pid } }
+  //   { type: 'error',  data: '<string>' }
   app.post('/api/tools/:toolId/stream', (req, res) => {
     const tool = tools[req.params.toolId];
     if (!tool) return res.status(404).json({ error: `Unknown tool: ${req.params.toolId}` });
@@ -67,31 +86,63 @@ function createApp() {
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
 
     const send = (type, data) => res.write(`data: ${JSON.stringify({ type, data })}\n\n`);
 
-    send('start', { command: tool.binary, args });
+    let proc;
+    try {
+      proc = spawnTool(tool, args);
+    } catch (err) {
+      send('error', err.message);
+      res.end();
+      return;
+    }
 
-    const proc = spawn(tool.binary, args, { shell: false });
+    const pid = proc.pid;
+    if (pid) activeProcs.set(pid, proc);
+
+    send('start', { command: tool.binary, args, pid });
 
     proc.stdout.on('data', (chunk) => send('stdout', chunk.toString()));
     proc.stderr.on('data', (chunk) => send('stderr', chunk.toString()));
 
     proc.on('error', (err) => {
       const msg = err.code === 'ENOENT'
-        ? `"${tool.binary}" not found. Make sure it is installed in WSL.`
+        ? config.shouldUseWsl()
+          ? `"${tool.binary}" not found in WSL. Verify WSL tool paths.`
+          : `"${tool.binary}" not found. Make sure it is installed.`
         : err.message;
       send('error', msg);
+      if (pid) activeProcs.delete(pid);
       res.end();
     });
 
     proc.on('close', (code, signal) => {
-      send('done', { code, signal });
+      send('done', { code, signal, pid });
+      if (pid) activeProcs.delete(pid);
       res.end();
     });
 
-    req.on('close', () => proc.kill());
+    req.on('close', () => {
+      if (proc) proc.kill();
+      if (pid) activeProcs.delete(pid);
+    });
+  });
+
+  // ── Kill a running process ───────────────────────────────────────────────────
+  app.post('/api/kill/:pid', (req, res) => {
+    const pid  = Number(req.params.pid);
+    const proc = activeProcs.get(pid);
+    if (!proc) return res.status(404).json({ error: `No active process with PID ${pid}` });
+    try {
+      proc.kill('SIGTERM');
+      activeProcs.delete(pid);
+      res.json({ ok: true, pid });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // ── SecLists browser ────────────────────────────────────────────────────────
@@ -104,9 +155,78 @@ function createApp() {
     }
   });
 
+  // ── Config (read-only, safe subset) ─────────────────────────────────────────
+  app.get('/api/config', (req, res) => {
+    res.json({
+      port:         config.port,
+      host:         config.host,
+      useWsl:       config.shouldUseWsl(),
+      wslDistro:    config.wslDistro,
+      wslToolPaths: config.wslToolPaths,
+      timeoutMs:    config.timeoutMs,
+      maxBufferMb:  Math.round(config.maxBuffer / 1024 / 1024),
+      seclistsRoot: config.resolveSeclistsRoot(),
+      isWindows:    config.isWindows,
+      platform:     process.platform,
+      nodeVersion:  process.version,
+    });
+  });
+
   // ── Status ──────────────────────────────────────────────────────────────────
   app.get('/api/status', (req, res) => {
-    res.json({ ok: true, toolCount: Object.keys(tools).length, categories: Object.keys(CATEGORIES) });
+    res.json({
+      ok:         true,
+      toolCount:  Object.keys(tools).length,
+      categories: Object.keys(CATEGORIES),
+      activeProcs: activeProcs.size,
+      uptime:     Math.round(process.uptime()),
+    });
+  });
+
+  // ── Loot saver ──────────────────────────────────────────────────────────────
+  // POST /api/loot  { filename: 'scan.txt', content: '...' }
+  // → saves to LOOT_DIR/<timestamp>-<filename>
+  app.post('/api/loot', (req, res) => {
+    ensureLootDir();
+    const { filename, content } = req.body || {};
+    if (!filename || typeof content !== 'string') {
+      return res.status(400).json({ error: 'filename and content are required' });
+    }
+    // Sanitise filename — only word chars, hyphens, dots
+    const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
+    const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const name = `${ts}-${safe}`;
+    const full = path.join(LOOT_DIR, name);
+    // Prevent path traversal
+    if (!full.startsWith(LOOT_DIR)) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+    try {
+      fs.writeFileSync(full, content, 'utf8');
+      res.json({ ok: true, path: full, name });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/loot — list saved loot files
+  app.get('/api/loot', (req, res) => {
+    ensureLootDir();
+    try {
+      const files = fs.readdirSync(LOOT_DIR)
+        .filter((f) => {
+          try { return fs.statSync(path.join(LOOT_DIR, f)).isFile(); } catch { return false; }
+        })
+        .map((f) => {
+          const stat = fs.statSync(path.join(LOOT_DIR, f));
+          return { name: f, size: stat.size, mtime: stat.mtimeMs };
+        })
+        .sort((a, b) => b.mtime - a.mtime)
+        .slice(0, 100);
+      res.json({ lootDir: LOOT_DIR, files });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   return app;

@@ -10,20 +10,37 @@
 </head>
 <body>
 
-  <!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+  <!-- ── HEADER ──────────────────────────────────────────────────────────────── -->
   <header class="header">
     <div class="header-left">
+      <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar (B)">☰</button>
       <div class="logo">
         <span class="logo-q">Q</span><span class="logo-rest">ACKER</span>
       </div>
       <div class="tagline">CyberStrike Arsenal · KING@THRONE</div>
     </div>
+
+    <div class="header-center">
+      <div class="scope-bar">
+        <span class="scope-label">TARGET</span>
+        <input class="scope-input" id="scope-input" type="text"
+               placeholder="Set global target — auto-fills tools…" autocomplete="off" spellcheck="false" />
+        <button class="icon-btn scope-clear" id="scope-clear" title="Clear target">✕</button>
+      </div>
+    </div>
+
     <div class="header-right">
       <div class="status-bar">
         <span class="status-dot" id="status-dot"></span>
         <span class="status-text" id="status-text">Connecting…</span>
       </div>
+      <div class="uptime-clock" id="uptime-clock"></div>
       <div class="tool-count" id="tool-count">— tools</div>
+      <button class="icon-btn" id="targets-btn"  title="Extracted targets (T)">🎯 Targets</button>
+      <button class="icon-btn" id="notes-btn"    title="Engagement notes (N)">📝 Notes</button>
+      <button class="icon-btn" id="loot-btn"     title="View loot files">📁 Loot</button>
+      <button class="icon-btn" id="report-btn"   title="Export session report">📄 Report</button>
+      <button class="icon-btn" id="config-btn"   title="Server config (Ctrl+,)">⚙ Config</button>
     </div>
   </header>
 
@@ -31,14 +48,35 @@
   <div class="layout">
 
     <!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
-    <aside class="sidebar">
-      <div class="sidebar-section">
-        <div class="sidebar-label">ARSENAL</div>
-        <nav id="tool-nav"></nav>
+    <aside class="sidebar" id="sidebar">
+
+      <!-- Tool search -->
+      <div class="sidebar-search">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="tool-search" type="text"
+               placeholder="Search tools… (Ctrl+/)" autocomplete="off" spellcheck="false" />
+        <button class="icon-btn search-clear" id="search-clear" title="Clear">✕</button>
       </div>
 
-      <div class="sidebar-section">
-        <div class="sidebar-label">WORDLISTS</div>
+      <!-- Pinned / Favorites section (hidden until there are any) -->
+      <div class="sidebar-section" id="favorites-section" style="display:none">
+        <div class="sidebar-label">PINNED</div>
+        <nav id="favorites-nav"></nav>
+      </div>
+
+      <!-- Arsenal -->
+      <div class="sidebar-section" id="arsenal-section">
+        <div class="sidebar-label">ARSENAL</div>
+        <nav id="tool-nav"></nav>
+        <div class="search-empty" id="search-empty" style="display:none">No tools match</div>
+      </div>
+
+      <!-- SecLists wordlist browser -->
+      <div class="sidebar-section" id="wordlists-section">
+        <div class="sidebar-label">
+          WORDLISTS
+          <span class="sl-hint">drag to field</span>
+        </div>
         <div class="seclists-nav">
           <div class="seclists-path-bar">
             <button class="icon-btn" id="seclists-up" title="Go up">↑</button>
@@ -48,13 +86,15 @@
         </div>
       </div>
 
+      <!-- Agents -->
       <div class="sidebar-section sidebar-agents">
         <div class="sidebar-label">AGENTS</div>
         <div class="agent-list" id="agent-list"></div>
       </div>
+
     </aside>
 
-    <!-- ── CONTENT ─────────────────────────────────────────────────────────── -->
+    <!-- ── CONTENT ──────────────────────────────────────────────────────────── -->
     <main class="content">
 
       <!-- Tool form panel -->
@@ -62,7 +102,7 @@
         <div class="panel-empty">
           <div class="empty-icon">⚡</div>
           <div class="empty-title">Select a tool</div>
-          <div class="empty-sub">Choose a tool from the arsenal to get started</div>
+          <div class="empty-sub">Choose from the arsenal or use Ctrl+/ to search · ★ to pin favorites</div>
         </div>
       </section>
 
@@ -71,17 +111,163 @@
         <div class="panel-header">
           <div class="panel-title">
             <span class="panel-icon">▶</span> Output
+            <span class="output-stats" id="output-stats"></span>
           </div>
           <div class="output-actions">
             <span class="output-meta" id="output-meta"></span>
-            <button class="icon-btn" id="copy-btn" title="Copy output">⧉ Copy</button>
-            <button class="icon-btn" id="clear-btn" title="Clear output">✕ Clear</button>
+            <button class="icon-btn" id="extract-btn"        title="Extract targets from output">🎯 Extract</button>
+            <button class="icon-btn" id="find-btn"           title="Find in output (Ctrl+F)">🔍 Find</button>
+            <button class="icon-btn" id="autoscroll-btn"     title="Toggle auto-scroll">⬇ Auto</button>
+            <button class="icon-btn" id="history-toggle-btn" title="Toggle history (H)">⏱ History</button>
+            <button class="icon-btn" id="save-loot-btn"      title="Save to loot (Ctrl+S)">💾 Save</button>
+            <button class="icon-btn" id="copy-btn"           title="Copy (Ctrl+C)">⧉ Copy</button>
+            <button class="icon-btn" id="clear-btn"          title="Clear (Ctrl+K)">✕ Clear</button>
           </div>
         </div>
+
+        <!-- Find bar -->
+        <div class="find-bar" id="find-bar" style="display:none">
+          <span class="find-icon">🔍</span>
+          <input class="find-input" id="find-input" type="text" placeholder="Find in output…" spellcheck="false" />
+          <span class="find-count" id="find-count"></span>
+          <button class="icon-btn" id="find-prev"  title="Previous (Shift+Enter)">↑</button>
+          <button class="icon-btn" id="find-next"  title="Next (Enter)">↓</button>
+          <button class="icon-btn" id="find-close" title="Close (Esc)">✕</button>
+        </div>
+
+        <!-- History tabs -->
+        <div class="history-bar" id="history-bar" style="display:none">
+          <div class="history-tabs" id="history-tabs"></div>
+          <button class="icon-btn history-clear-btn" id="history-clear-btn" title="Clear history">✕ All</button>
+        </div>
+
         <pre id="output" class="output-pre"><code class="output-placeholder">Run a tool to see output here.</code></pre>
       </section>
 
     </main>
+
+    <!-- ── RIGHT PANELS (Notes / Targets) ───────────────────────────────────── -->
+
+    <!-- Notes -->
+    <aside class="right-panel notes-panel" id="notes-panel" style="display:none">
+      <div class="notes-header">
+        <span class="notes-title">📝 Engagement Notes</span>
+        <div class="notes-actions">
+          <button class="icon-btn" id="notes-save-btn"  title="Save notes to loot">💾</button>
+          <button class="icon-btn" id="notes-close-btn" title="Close">✕</button>
+        </div>
+      </div>
+      <textarea class="notes-area" id="notes-area"
+                placeholder="Free-form notes…&#10;&#10;Target: &#10;Scope: &#10;Findings:&#10;"></textarea>
+      <div class="notes-footer">
+        <span class="notes-saved" id="notes-saved"></span>
+        <span class="notes-hint">Auto-saved · Ctrl+S to loot</span>
+      </div>
+    </aside>
+
+    <!-- Targets -->
+    <aside class="right-panel targets-panel" id="targets-panel" style="display:none">
+      <div class="notes-header">
+        <span class="notes-title">🎯 Extracted Targets</span>
+        <div class="notes-actions">
+          <button class="icon-btn" id="targets-clear-btn" title="Clear list">✕ Clear</button>
+          <button class="icon-btn" id="targets-close-btn" title="Close">✕</button>
+        </div>
+      </div>
+      <div class="targets-toolbar">
+        <input class="targets-filter" id="targets-filter" type="text"
+               placeholder="Filter targets…" spellcheck="false" />
+        <button class="icon-btn" id="targets-copy-all" title="Copy all as newline-separated">⧉ All</button>
+        <button class="icon-btn" id="targets-save-btn" title="Save to loot">💾</button>
+      </div>
+      <ul class="targets-list" id="targets-list">
+        <li class="targets-empty">No targets extracted yet.<br>Run nmap, subfinder, httpx, etc. then click 🎯 Extract.</li>
+      </ul>
+      <div class="targets-footer">
+        <span class="targets-count" id="targets-count">0 targets</span>
+        <span class="notes-hint">Click → set as TARGET · Double-click → remove</span>
+      </div>
+    </aside>
+
+  </div><!-- /.layout -->
+
+  <!-- ── MODALS ─────────────────────────────────────────────────────────────── -->
+
+  <!-- Config -->
+  <div class="modal-overlay" id="config-modal" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">⚙ Server Configuration</span>
+        <button class="icon-btn" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body" id="config-body">
+        <div class="config-loading">Loading…</div>
+      </div>
+      <div class="modal-footer">
+        <span class="modal-note">Read-only. Override via environment variables before starting QACKER.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loot -->
+  <div class="modal-overlay" id="loot-modal" role="dialog" aria-modal="true">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <span class="modal-title">📁 Loot Files</span>
+        <button class="icon-btn" id="loot-modal-close">✕</button>
+      </div>
+      <div class="modal-body" id="loot-body"><div class="config-loading">Loading…</div></div>
+      <div class="modal-footer">
+        <span class="modal-note" id="loot-dir-label">Loading…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report -->
+  <div class="modal-overlay" id="report-modal" role="dialog" aria-modal="true">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <span class="modal-title">📄 Session Report</span>
+        <div style="display:flex;gap:.4rem">
+          <button class="icon-btn" id="report-copy-btn">⧉ Copy</button>
+          <button class="icon-btn" id="report-save-btn">💾 Save</button>
+          <button class="icon-btn" id="report-modal-close">✕</button>
+        </div>
+      </div>
+      <div class="modal-body" id="report-body"><div class="config-loading">No history yet.</div></div>
+      <div class="modal-footer">
+        <span class="modal-note">Markdown report of all history entries + engagement notes.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TOAST ──────────────────────────────────────────────────────────────── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────── -->
+  <div class="shortcuts-overlay" id="shortcuts-overlay" style="display:none">
+    <div class="shortcuts-box">
+      <div class="shortcuts-title">⌨ Keyboard Shortcuts</div>
+      <table class="shortcuts-table">
+        <tr><td><kbd>Ctrl+/</kbd></td><td>Focus tool search</td></tr>
+        <tr><td><kbd>Ctrl+Enter</kbd></td><td>Stream current tool</td></tr>
+        <tr><td><kbd>Ctrl+Shift+Enter</kbd></td><td>Run current tool (buffered)</td></tr>
+        <tr><td><kbd>Ctrl+K</kbd></td><td>Clear output</td></tr>
+        <tr><td><kbd>Ctrl+F</kbd></td><td>Find in output</td></tr>
+        <tr><td><kbd>Ctrl+S</kbd></td><td>Save output to loot</td></tr>
+        <tr><td><kbd>Ctrl+,</kbd></td><td>Open config</td></tr>
+        <tr><td><kbd>Ctrl+?</kbd></td><td>This cheatsheet</td></tr>
+        <tr><td><kbd>B</kbd></td><td>Toggle sidebar</td></tr>
+        <tr><td><kbd>N</kbd></td><td>Toggle notes panel</td></tr>
+        <tr><td><kbd>T</kbd></td><td>Toggle targets panel</td></tr>
+        <tr><td><kbd>H</kbd></td><td>Toggle history</td></tr>
+        <tr><td><kbd>★ button</kbd></td><td>Pin / unpin tool to favorites</td></tr>
+        <tr><td><kbd>↑↓ in field</kbd></td><td>Recall previous inputs for this tool</td></tr>
+        <tr><td><kbd>Drag wordlist</kbd></td><td>Drop onto any field to fill it</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Close overlays</td></tr>
+      </table>
+      <button class="icon-btn" id="shortcuts-close" style="margin-top:.75rem">✕ Close</button>
+    </div>
   </div>
 
   <script src="/app.js"></script>
