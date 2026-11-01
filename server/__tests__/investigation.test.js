@@ -8,6 +8,7 @@ const { extractIndicators } = require('../investigation/metadata');
 const { correlate } = require('../investigation/correlation');
 const { parseMetasploitOutput } = require('../investigation/metasploit');
 const { buildReport } = require('../investigation/report');
+const { scoreTechnicalLink } = require('../investigation/probability');
 
 describe('QACKER investigation core', () => {
   let root;
@@ -18,7 +19,7 @@ describe('QACKER investigation core', () => {
     expect(() => createCase({ title: 'x' }, root)).toThrow(/authorization/i);
   });
 
-  test('hashes and correlates repeated technical indicators', () => {
+  test('hashes, correlates, and scores repeated technical indicators', () => {
     const c = createCase({
       title: 'Lab case',
       authorization: { confirmed: true, basis: 'Owned lab environment' },
@@ -35,11 +36,27 @@ describe('QACKER investigation core', () => {
     expect(items[0].sha256).toBe(hashContent(firstContent));
 
     const result = correlate(items);
-    expect(result.sharedIndicators.some((x) => x.value === 'demo.example')).toBe(true);
+    const domain = result.sharedIndicators.find((x) => x.value === 'demo.example');
+    expect(domain).toBeTruthy();
+    expect(domain.probabilityEstimate.percent).toBeGreaterThan(0);
+    expect(domain.probabilityEstimate.calibrated).toBe(false);
+    expect(result.methodology.calibratedProbability).toBe(false);
 
     const report = buildReport(c, items);
     expect(report).toContain('Shared Technical Indicators');
+    expect(report).toContain('Link confidence');
     expect(report).toContain('demo.example');
+  });
+
+  test('scores more specific repeated indicators above broad CVE matches', () => {
+    const evidence = [
+      { evidenceId: '1', source: 'source-a' },
+      { evidenceId: '2', source: 'source-b' },
+    ];
+    const hash = scoreTechnicalLink({ type: 'sha256', value: 'a'.repeat(64) }, evidence);
+    const cve = scoreTechnicalLink({ type: 'cve', value: 'CVE-2026-1234' }, evidence);
+    expect(hash.score).toBeGreaterThan(cve.score);
+    expect(hash.notMeaning).toMatch(/not a probability of identity/i);
   });
 
   test('parses supplied Metasploit output without executing it', () => {
