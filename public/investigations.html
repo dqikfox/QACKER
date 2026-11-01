@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QACKER — Investigation Workspace</title>
+  <link rel="stylesheet" href="/investigations.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <a class="brand" href="/">QACKER</a>
+      <span class="subtitle">Authorized Investigation Workspace</span>
+    </div>
+    <div class="guardrail">Evidence correlation only · no active collection or person tracking</div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar card">
+      <div class="section-head">
+        <h2>Cases</h2>
+        <button id="refresh-cases">Refresh</button>
+      </div>
+      <div id="case-list" class="case-list"></div>
+      <hr />
+      <h3>Create case</h3>
+      <form id="case-form" class="stack">
+        <label>Title<input id="case-title" maxlength="160" required /></label>
+        <label>Purpose<textarea id="case-purpose" rows="2"></textarea></label>
+        <label>Authorized scope<textarea id="case-scope" rows="3"></textarea></label>
+        <label>Authorization basis<textarea id="auth-basis" rows="2" required placeholder="Owned infrastructure, written engagement, official authorization…"></textarea></label>
+        <label>Authorization reference<input id="auth-reference" placeholder="Engagement/case/reference ID" /></label>
+        <label class="check"><input id="auth-confirmed" type="checkbox" required /> I confirm this case has a lawful authorization basis.</label>
+        <button type="submit" class="primary">Create authorized case</button>
+      </form>
+    </aside>
+
+    <section class="maincol">
+      <section class="card" id="empty-state">
+        <h2>Select or create a case</h2>
+        <p>QACKER correlates analyst-supplied evidence and authorized tool output. Technical confidence scores are leads, not identity or guilt probabilities.</p>
+      </section>
+
+      <div id="case-workspace" hidden>
+        <section class="card">
+          <div class="section-head wrap">
+            <div>
+              <h1 id="active-title">Case</h1>
+              <div id="active-meta" class="muted"></div>
+            </div>
+            <div class="actions">
+              <button id="verify-btn">Verify integrity</button>
+              <button id="report-btn">Download report</button>
+              <button id="export-btn">Export JSON</button>
+              <button id="status-btn">Close case</button>
+            </div>
+          </div>
+          <div id="case-details" class="details"></div>
+          <div id="verification" class="verification"></div>
+        </section>
+
+        <section class="grid2">
+          <section class="card">
+            <h2>Add evidence</h2>
+            <form id="evidence-form" class="stack">
+              <label>Kind
+                <select id="evidence-kind">
+                  <option value="observation">Observation</option>
+                  <option value="metasploit">Metasploit output</option>
+                  <option value="log">Log</option>
+                  <option value="forensic-note">Forensic note</option>
+                </select>
+              </label>
+              <label>Source<input id="evidence-source" required placeholder="analyst-note, sensor-a, authorized-tool-output…" /></label>
+              <label>Collected at<input id="evidence-time" type="datetime-local" /></label>
+              <label>Content<textarea id="evidence-content" rows="10" required placeholder="Paste analyst-supplied evidence or authorized tool output here…"></textarea></label>
+              <button class="primary" type="submit">Ingest and hash evidence</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <div class="section-head"><h2>Technical correlations</h2><button id="refresh-correlation">Refresh</button></div>
+            <p class="muted">Percentages are uncalibrated technical-link confidence estimates—not probabilities of identity, location, criminal conduct, or guilt.</p>
+            <div id="correlations"></div>
+          </section>
+        </section>
+
+        <section class="card">
+          <div class="section-head"><h2>Evidence inventory</h2><span id="evidence-count" class="badge">0</span></div>
+          <div id="evidence-list"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="/investigations.js"></script>
+</body>
+</html>
