@@ -43,17 +43,34 @@ function buildReport(caseRecord, evidenceItems) {
   if (!correlation.sharedIndicators.length) {
     lines.push('_No repeated technical indicators were found across evidence items._', '');
   } else {
-    lines.push('| Type | Value | Evidence count |', '|---|---|---:|');
+    lines.push('| Type | Value | Evidence | Sources | Link confidence |', '|---|---|---:|---:|---:|');
     for (const indicator of correlation.sharedIndicators) {
-      lines.push(`| ${indicator.type} | \`${esc(indicator.value)}\` | ${indicator.evidenceIds.length} |`);
+      const p = indicator.probabilityEstimate;
+      lines.push(`| ${indicator.type} | \`${esc(indicator.value)}\` | ${indicator.evidenceIds.length} | ${p.sourceCount} | ${p.percent}% (${p.band}) |`);
     }
     lines.push('');
+
+    lines.push('### Confidence Method', '');
+    lines.push(
+      'The percentages above are **uncalibrated heuristic technical-link confidence estimates**. They increase with indicator specificity, repeated evidence, and reported source diversity. They are not statistical probabilities of attribution.',
+      ''
+    );
+
+    for (const indicator of correlation.sharedIndicators) {
+      const p = indicator.probabilityEstimate;
+      lines.push(`#### ${esc(indicator.type)} — ${esc(indicator.value)}`, '');
+      lines.push(`- Technical-link confidence: **${p.percent}% (${p.band})**`);
+      lines.push(`- Evidence items: ${p.evidenceCount}`);
+      lines.push(`- Reported sources: ${p.sourceCount}`);
+      for (const factor of p.factors) lines.push(`- ${esc(factor)}`);
+      lines.push('');
+    }
   }
 
   lines.push(
     '## Investigative Caution',
     '',
-    'Technical indicators are investigative leads, not proof of identity, physical location, ownership, criminal conduct, or guilt. Attribution should be corroborated through lawful provider records, forensic examination, and appropriate investigative process.',
+    'Technical indicators and QACKER confidence estimates are investigative leads, not proof of identity, physical location, ownership, criminal conduct, or guilt. Attribution should be corroborated through lawful provider records, forensic examination, and appropriate investigative process.',
     '',
     'This report records analyst-supplied observations and derived technical correlations. QACKER does not independently verify the truth of submitted content.',
     ''
